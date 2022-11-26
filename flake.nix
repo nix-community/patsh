@@ -13,27 +13,22 @@
         "x86_64-darwin"
         "x86_64-linux"
       ];
-
-      tree-sitter-bash = { runCommand, tree-sitter }: runCommand "tree-sitter-bash" { } ''
-        mkdir $out
-        ln -s ${tree-sitter.builtGrammars.tree-sitter-bash}/parser $out/libtree-sitter-bash.a
-      '';
     in
     {
       devShells = forEachSystem (system:
         let
-          inherit (nixpkgs.legacyPackages.${system}) callPackage mkShell;
+          inherit (nixpkgs.legacyPackages.${system}) mkShell;
         in
         {
           default = mkShell {
-            LD_LIBRARY_PATH = callPackage tree-sitter-bash { };
-            TREE_SITTER_BASH = callPackage tree-sitter-bash { };
+            LD_LIBRARY_PATH = self.packages.${system}.tree-sitter-bash;
+            TREE_SITTER_BASH = self.packages.${system}.tree-sitter-bash;
           };
         });
 
       packages = forEachSystem (system:
         let
-          inherit (nixpkgs.legacyPackages.${system}) callPackage rustPlatform;
+          inherit (nixpkgs.legacyPackages.${system}) runCommand rustPlatform tree-sitter;
         in
         {
           default = rustPlatform.buildRustPackage {
@@ -41,8 +36,14 @@
             inherit ((importTOML (self + "/Cargo.toml")).package) version;
             src = self;
             cargoLock.lockFile = self + "/Cargo.lock";
-            TREE_SITTER_BASH = callPackage tree-sitter-bash { };
+            TREE_SITTER_BASH = self.packages.${system}.tree-sitter-bash;
           };
+
+          tree-sitter-bash = runCommand "tree-sitter-bash" { } ''
+            mkdir $out
+            ln -s ${tree-sitter.builtGrammars.tree-sitter-bash}/parser $out/libtree-sitter-bash.a
+          '';
+
         });
     };
 }
