@@ -11,10 +11,6 @@ jobs:
         include:
           - target: x86_64-apple-darwin
             os: macos-latest
-          - target: x86_64-pc-windows-gnu
-            os: windows-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
           - target: x86_64-unknown-linux-musl
@@ -24,10 +20,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Cargo build
-        run: |
-          rustup toolchain install stable --profile minimal -t ${{ matrix.target }}
-          cargo +stable build --target ${{ matrix.target }}
+      - name: Install nix
+        uses: cachix/install-nix-action@v18
+
+      - name: Nix build
+        run: nix build
 
   clippy-rustfmt:
     name: clippy-rustfmt
@@ -40,5 +37,5 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal -c clippy
           rustup toolchain install nightly --profile minimal -c rustfmt
-          cargo +stable clippy -- -D warnings
+          nix develop -c cargo +stable clippy -- -D warnings
           cargo +nightly fmt -- --check
