@@ -33,6 +33,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install nix
+        uses: cachix/install-nix-action@v18
+
       - name: "Cargo: clippy, fmt"
         run: |
           rustup toolchain install stable --profile minimal -c clippy
