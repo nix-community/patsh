@@ -33,6 +33,10 @@ struct Opts {
     /// however, --force is required to patch in place
     output: Option<PathBuf>,
 
+    /// bash command used to list the built-in commands
+    #[arg(short, long, default_value = "bash", value_name = "COMMAND")]
+    bash: OsString,
+
     /// remove existing output file if needed
     #[arg(short, long)]
     force: bool,
@@ -43,10 +47,11 @@ fn main() -> Result<()> {
     let mut parser = Parser::new();
     parser.set_language(unsafe { tree_sitter_bash() })?;
 
-    let output = Command::new("bash").arg("-c").arg("enable").output()?;
+    let output = Command::new(&opts.bash).arg("-c").arg("enable").output()?;
     if !output.status.success() {
         bail!(
-            "command `bash -c enable` failed: {}\n\nstdout: {}\nstderr: {}",
+            "command `{} -c enable` failed: {}\n\nstdout: {}\nstderr: {}",
+            opts.bash.to_string_lossy(),
             output.status,
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr),
