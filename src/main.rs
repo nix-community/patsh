@@ -21,7 +21,7 @@ extern "C" {
 type Patches = Vec<(Range<usize>, PathBuf)>;
 
 /// A command-line tool for patching shell scripts
-/// https://github.com/figsoda/patsh
+/// https://github.com/nix-community/patsh
 #[derive(ClapParser)]
 #[command(version, verbatim_doc_comment)]
 struct Opts {
