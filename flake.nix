@@ -1,4 +1,6 @@
 {
+  description = "A command-line tool for patching shell scripts";
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };

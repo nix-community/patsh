@@ -3,13 +3,13 @@ name = "patsh"
 version = "0.1.0"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
-description = ""
+description = "A command-line tool for patching shell scripts"
 readme = "README.md"
 homepage = "https://github.com/figsoda/patsh"
 repository = "https://github.com/figsoda/patsh"
 license = "MPL-2.0"
-keywords = []
-categories = []
+keywords = ["bash", "cli", "nix", "patch", "shell"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.66"

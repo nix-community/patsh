@@ -20,10 +20,20 @@ extern "C" {
 
 type Patches = Vec<(Range<usize>, PathBuf)>;
 
+/// A command-line tool for patching shell scripts
+/// https://github.com/figsoda/patsh
 #[derive(ClapParser)]
+#[command(version, verbatim_doc_comment)]
 struct Opts {
+    /// the file to be patched
     input: PathBuf,
-    output: PathBuf,
+
+    /// output path of the patched file,
+    /// defaults to the input path,
+    /// however, --force is required to patch in place
+    output: Option<PathBuf>,
+
+    /// remove existing output file if needed
     #[arg(short, long)]
     force: bool,
 }
@@ -62,7 +72,7 @@ fn main() -> Result<()> {
         .write(true)
         .create(true)
         .create_new(!opts.force)
-        .open(opts.output)?;
+        .open(opts.output.unwrap_or(opts.input))?;
 
     for (range, path) in patches {
         file.write_all(&src[last .. range.start])?;
