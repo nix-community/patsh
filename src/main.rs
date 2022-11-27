@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context as _, Result};
 use clap::Parser as ClapParser;
 use tree_sitter::{Language, Node, Parser, TreeCursor};
 use which::which;
@@ -17,8 +17,6 @@ use std::{
 extern "C" {
     fn tree_sitter_bash() -> Language;
 }
-
-type Patches = Vec<(Range<usize>, PathBuf)>;
 
 /// A command-line tool for patching shell scripts
 /// https://github.com/nix-community/patsh
@@ -40,6 +38,12 @@ struct Opts {
     /// remove existing output file if needed
     #[arg(short, long)]
     force: bool,
+}
+
+struct Context {
+    builtins: Vec<OsString>,
+    src: Vec<u8>,
+    patches: Vec<(Range<usize>, PathBuf)>,
 }
 
 fn main() -> Result<()> {
@@ -69,8 +73,13 @@ fn main() -> Result<()> {
         .parse(&src, None)
         .with_context(|| format!("failed to parse {}", opts.input.display()))?;
 
-    let mut patches = Vec::new();
-    walk(&mut patches, &src, &builtins, &mut tree.walk())?;
+    let mut ctx = Context {
+        builtins,
+        src,
+        patches: Vec::new(),
+    };
+
+    walk(&mut ctx, &mut tree.walk())?;
 
     let mut last = 0;
     let mut file = File::options()
@@ -79,33 +88,28 @@ fn main() -> Result<()> {
         .create_new(!opts.force)
         .open(opts.output.unwrap_or(opts.input))?;
 
-    for (range, path) in patches {
-        file.write_all(&src[last .. range.start])?;
+    for (range, path) in ctx.patches {
+        file.write_all(&ctx.src[last .. range.start])?;
         file.write_all(path.as_os_str().as_bytes())?;
         last = range.end;
     }
-    file.write_all(&src[last ..])?;
+    file.write_all(&ctx.src[last ..])?;
 
     Ok(())
 }
 
-fn walk(
-    patches: &mut Patches,
-    src: &[u8],
-    builtins: &[OsString],
-    cur: &mut TreeCursor,
-) -> Result<()> {
+fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
     if cur.node().kind() == "command_name" && cur.goto_first_child() {
-        patch_node(patches, src, builtins, cur.node())?;
+        patch_node(ctx, cur.node())?;
         cur.goto_parent();
     }
 
     if cur.goto_first_child() {
-        walk(patches, src, builtins, cur)?;
+        walk(ctx, cur)?;
         while cur.goto_next_sibling() {
-            walk(patches, src, builtins, cur)?;
+            walk(ctx, cur)?;
             while cur.goto_next_sibling() {
-                walk(patches, src, builtins, cur)?;
+                walk(ctx, cur)?;
             }
             if !cur.goto_parent() {
                 return Ok(());
@@ -116,21 +120,21 @@ fn walk(
     Ok(())
 }
 
-fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: Node) -> Result<()> {
+fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
     let range = match node.kind() {
         "word" => node.byte_range(),
         "string" | "raw_string" => node.start_byte() + 1 .. node.end_byte() - 1,
         _ => return Ok(()),
     };
 
-    let name = &src[range.clone()];
+    let name = &ctx.src[range.clone()];
     if name == b"exec" {
         return if let Some(node) = node
             .parent()
             .and_then(|node| node.parent())
             .and_then(|node| node.child_by_field_name(b"argument"))
         {
-            patch_node(patches, src, builtins, node)
+            patch_node(ctx, node)
         } else {
             Ok(())
         };
@@ -153,7 +157,7 @@ fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: No
             None,
             _,
         ) if bin == "bin" => name,
-        (Some(Component::Normal(name)), None, ..) if !builtins.contains(&name.into()) => name,
+        (Some(Component::Normal(name)), None, ..) if !ctx.builtins.contains(&name.into()) => name,
         _ => return Ok(()),
     };
 
@@ -176,10 +180,10 @@ fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: No
         return Ok(());
     }
 
-    let mut idx = patches.len();
+    let mut idx = ctx.patches.len();
     let mut replace = false;
 
-    for (i, (other, _)) in patches.iter().enumerate() {
+    for (i, (other, _)) in ctx.patches.iter().enumerate() {
         if range.start < other.start {
             if range.end <= other.end {
                 idx = i;
@@ -199,9 +203,9 @@ fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: No
     }
 
     if replace {
-        patches[idx] = (range, path);
+        ctx.patches[idx] = (range, path);
     } else {
-        patches.insert(idx, (range, path));
+        ctx.patches.insert(idx, (range, path));
     }
 
     Ok(())
