@@ -38,11 +38,16 @@ struct Opts {
     /// remove existing output file if needed
     #[arg(short, long)]
     force: bool,
+
+    /// path to the nix store, e.g. `builtins.storeDir`
+    #[arg(short, long, default_value = "/nix/store", value_name = "PATH")]
+    store_dir: PathBuf,
 }
 
 struct Context {
     builtins: Vec<OsString>,
     src: Vec<u8>,
+    store_dir: PathBuf,
     patches: Vec<(Range<usize>, PathBuf)>,
 }
 
@@ -76,6 +81,7 @@ fn main() -> Result<()> {
     let mut ctx = Context {
         builtins,
         src,
+        store_dir: opts.store_dir,
         patches: Vec::new(),
     };
 
@@ -176,7 +182,7 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
         }
     }
 
-    if !path.starts_with("/nix/store") {
+    if !path.starts_with(&ctx.store_dir) {
         return Ok(());
     }
 

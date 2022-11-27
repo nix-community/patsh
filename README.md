@@ -21,10 +21,11 @@ Arguments:
   [OUTPUT]  output path of the patched file, defaults to the input path, however, --force is required to patch in place
 
 Options:
-  -b, --bash <COMMAND>  bash command used to list the built-in commands [default: bash]
-  -f, --force           remove existing output file if needed
-  -h, --help            Print help information
-  -V, --version         Print version information
+  -b, --bash <COMMAND>    bash command used to list the built-in commands [default: bash]
+  -f, --force             remove existing output file if needed
+  -s, --store-dir <PATH>  path to the nix store, e.g. `builtins.storeDir` [default: /nix/store]
+  -h, --help              Print help information
+  -V, --version           Print version information
 ```
 
 ## TODO
