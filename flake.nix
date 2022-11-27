@@ -42,8 +42,7 @@
           };
 
           tree-sitter-bash = runCommand "tree-sitter-bash" { } ''
-            mkdir $out
-            ln -s ${tree-sitter.builtGrammars.tree-sitter-bash}/parser $out/libtree-sitter-bash.a
+            install -Dm444 ${tree-sitter.builtGrammars.tree-sitter-bash}/parser $out/libtree-sitter-bash.a
           '';
         });
     };
