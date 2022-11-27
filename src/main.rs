@@ -40,7 +40,7 @@ struct Opts {
     #[arg(short, long)]
     force: bool,
 
-    /// use something other than PATH variable for path resolution
+    /// use something other than the PATH variable for path resolution
     #[arg(short, long)]
     path: Option<OsString>,
 

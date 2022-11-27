@@ -23,7 +23,7 @@ Arguments:
 Options:
   -b, --bash <COMMAND>    bash command used to list the built-in commands [default: bash]
   -f, --force             remove existing output file if needed
-  -p, --path <PATH>       use something other than PATH variable for path resolution
+  -p, --path <PATH>       use something other than the PATH variable for path resolution
   -s, --store-dir <PATH>  path to the nix store, e.g. `builtins.storeDir` [default: /nix/store]
   -h, --help              Print help information
   -V, --version           Print version information
