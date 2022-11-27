@@ -97,16 +97,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "expand"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89bf5bdd036f9b6483fb3e9278eeec00c0e08a2fe03d37fc4283832ba0253ebd"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
 name = "heck"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -191,7 +181,6 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
- "expand",
  "tree-sitter",
  "which",
 ]
