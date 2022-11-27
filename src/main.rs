@@ -118,7 +118,20 @@ fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: No
         _ => return Ok(()),
     };
 
-    let path = PathBuf::from(OsStr::from_bytes(&src[range.clone()]));
+    let name = &src[range.clone()];
+    if name == b"exec" {
+        return if let Some(node) = node
+            .parent()
+            .and_then(|node| node.parent())
+            .and_then(|node| node.child_by_field_name(b"argument"))
+        {
+            patch_node(patches, src, builtins, node)
+        } else {
+            Ok(())
+        };
+    }
+
+    let path = PathBuf::from(OsStr::from_bytes(name));
     let mut c = path.components();
     let name = match (c.next(), c.next(), c.next(), c.next(), c.next()) {
         (
