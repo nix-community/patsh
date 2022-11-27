@@ -101,11 +101,12 @@ fn walk(
 }
 
 fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: Node) -> Result<()> {
-    if node.child_count() != 0 {
-        return Ok(());
+    let range = match node.kind() {
+        "word" => node.byte_range(),
+        "string" | "raw_string" => node.start_byte() + 1 .. node.end_byte() - 1,
+        _ => return Ok(()),
     };
 
-    let range = node.byte_range();
     let path = PathBuf::from(OsStr::from_bytes(&src[range.clone()]));
     let mut c = path.components();
     let name = match (c.next(), c.next(), c.next(), c.next(), c.next()) {
