@@ -79,6 +79,7 @@ fn main() -> Result<()> {
         file.write_all(path.as_os_str().as_bytes())?;
         last = range.end;
     }
+    file.write_all(&src[last ..])?;
 
     Ok(())
 }
