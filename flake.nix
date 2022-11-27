@@ -43,7 +43,6 @@
             mkdir $out
             ln -s ${tree-sitter.builtGrammars.tree-sitter-bash}/parser $out/libtree-sitter-bash.a
           '';
-
         });
     };
 }

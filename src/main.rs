@@ -4,12 +4,13 @@ use tree_sitter::{Language, Node, Parser, TreeCursor};
 use which::which;
 
 use std::{
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fs::{self, read_link, File},
-    io::Write,
+    io::{BufRead, Write},
     ops::Range,
     os::unix::ffi::OsStrExt,
     path::{Component, PathBuf},
+    process::Command,
 };
 
 #[link(name = "tree-sitter-bash", kind = "dylib")]
@@ -32,13 +33,29 @@ fn main() -> Result<()> {
     let mut parser = Parser::new();
     parser.set_language(unsafe { tree_sitter_bash() })?;
 
+    let output = Command::new("bash").arg("-c").arg("enable").output()?;
+    if !output.status.success() {
+        bail!(
+            "command `bash -c enable` failed: {}\n\nstdout: {}\nstderr: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    }
+
+    let builtins: Vec<_> = output
+        .stdout
+        .lines()
+        .filter_map(|line| line.ok()?.strip_prefix("enable ").map(Into::into))
+        .collect();
+
     let src = fs::read(&opts.input)?;
     let tree = parser
         .parse(&src, None)
         .with_context(|| format!("failed to parse {}", opts.input.display()))?;
 
     let mut patches = Vec::new();
-    walk(&mut patches, &src, &mut tree.walk())?;
+    walk(&mut patches, &src, &builtins, &mut tree.walk())?;
 
     let mut last = 0;
     let mut file = File::options()
@@ -56,18 +73,23 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn walk(patches: &mut Patches, src: &[u8], cur: &mut TreeCursor) -> Result<()> {
+fn walk(
+    patches: &mut Patches,
+    src: &[u8],
+    builtins: &[OsString],
+    cur: &mut TreeCursor,
+) -> Result<()> {
     if cur.node().kind() == "command_name" && cur.goto_first_child() {
-        patch_node(patches, src, cur.node())?;
+        patch_node(patches, src, builtins, cur.node())?;
         cur.goto_parent();
     }
 
     if cur.goto_first_child() {
-        walk(patches, src, cur)?;
+        walk(patches, src, builtins, cur)?;
         while cur.goto_next_sibling() {
-            walk(patches, src, cur)?;
+            walk(patches, src, builtins, cur)?;
             while cur.goto_next_sibling() {
-                walk(patches, src, cur)?;
+                walk(patches, src, builtins, cur)?;
             }
             if !cur.goto_parent() {
                 return Ok(());
@@ -78,7 +100,7 @@ fn walk(patches: &mut Patches, src: &[u8], cur: &mut TreeCursor) -> Result<()> {
     Ok(())
 }
 
-fn patch_node(patches: &mut Patches, src: &[u8], node: Node) -> Result<()> {
+fn patch_node(patches: &mut Patches, src: &[u8], builtins: &[OsString], node: Node) -> Result<()> {
     if node.child_count() != 0 {
         return Ok(());
     };
@@ -101,7 +123,7 @@ fn patch_node(patches: &mut Patches, src: &[u8], node: Node) -> Result<()> {
             None,
             _,
         ) if bin == "bin" => name,
-        (Some(Component::Normal(name)), None, ..) => name,
+        (Some(Component::Normal(name)), None, ..) if !builtins.contains(&name.into()) => name,
         _ => return Ok(()),
     };
 
@@ -136,6 +158,7 @@ fn patch_node(patches: &mut Patches, src: &[u8], node: Node) -> Result<()> {
             }
         } else if range.start < other.end {
             if range.end <= other.end {
+                idx = i;
                 replace = true;
             } else {
                 bail!("{range:?} and {other:?} overlaps");
