@@ -1,9 +1,10 @@
 use anyhow::{bail, Context as _, Result};
 use clap::Parser as ClapParser;
+use is_executable::IsExecutable;
 use tree_sitter::{Language, Node, Parser, TreeCursor};
-use which::which;
 
 use std::{
+    env::{split_paths, var_os},
     ffi::{OsStr, OsString},
     fs::{self, read_link, File},
     io::{BufRead, Write},
@@ -39,6 +40,10 @@ struct Opts {
     #[arg(short, long)]
     force: bool,
 
+    /// use something other than PATH variable for path resolution
+    #[arg(short, long)]
+    path: Option<OsString>,
+
     /// path to the nix store, e.g. `builtins.storeDir`
     #[arg(short, long, default_value = "/nix/store", value_name = "PATH")]
     store_dir: PathBuf,
@@ -46,9 +51,10 @@ struct Opts {
 
 struct Context {
     builtins: Vec<OsString>,
+    patches: Vec<(Range<usize>, PathBuf)>,
+    paths: Vec<PathBuf>,
     src: Vec<u8>,
     store_dir: PathBuf,
-    patches: Vec<(Range<usize>, PathBuf)>,
 }
 
 fn main() -> Result<()> {
@@ -67,11 +73,16 @@ fn main() -> Result<()> {
         );
     }
 
-    let builtins: Vec<_> = output
+    let builtins = output
         .stdout
         .lines()
         .filter_map(|line| line.ok()?.strip_prefix("enable ").map(Into::into))
         .collect();
+
+    let paths = opts
+        .path
+        .or_else(|| var_os("PATH"))
+        .map_or_else(Vec::new, |path| split_paths(&path).collect());
 
     let src = fs::read(&opts.input)?;
     let tree = parser
@@ -80,9 +91,10 @@ fn main() -> Result<()> {
 
     let mut ctx = Context {
         builtins,
+        patches: Vec::new(),
+        paths,
         src,
         store_dir: opts.store_dir,
-        patches: Vec::new(),
     };
 
     walk(&mut ctx, &mut tree.walk())?;
@@ -167,8 +179,10 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
         _ => return Ok(()),
     };
 
-    // let Ok(mut path) = which(name) else { return Ok(()) };
-    let mut path = if let Ok(path) = which(name) {
+    let mut path = if let Some(path) = ctx.paths.iter().find_map(|path| {
+        let path = path.join(name);
+        path.is_executable().then_some(path)
+    }) {
         path
     } else {
         return Ok(());
