@@ -18,7 +18,7 @@ jobs:
         uses: cachix/install-nix-action@v18
 
       - name: Nix build
-        run: nix build
+        run: nix -L build
 
   clippy-rustfmt:
     name: clippy-rustfmt
@@ -34,5 +34,5 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal -c clippy
           rustup toolchain install nightly --profile minimal -c rustfmt
-          TREE_SITTER_BASH=$(nix eval --raw .#tree-sitter-bash) cargo +stable clippy -- -D warnings
+          TREE_SITTER_BASH=$(nix eval -L --raw .#tree-sitter-bash) cargo +stable clippy -- -D warnings
           cargo +nightly fmt -- --check
