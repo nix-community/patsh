@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.2 - 2022-11-27
+
+### Features
+
+- Support for `exec`
+
 ## v0.1.1 - 2022-11-27
 
 ### Fixes
