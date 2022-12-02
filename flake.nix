@@ -13,9 +13,12 @@
 
   outputs = { self, crane, nixpkgs }:
     let
-      inherit (nixpkgs.lib) genAttrs optional;
+      inherit (nixpkgs.lib) genAttrs optional systems;
     in
     {
+      formatter = genAttrs systems.flakeExposed
+        (system: nixpkgs.legacyPackages.${system}.nixpkgs-fmt);
+
       packages = genAttrs
         [
           "aarch64-darwin"
