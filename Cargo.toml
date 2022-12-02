@@ -21,6 +21,11 @@ tree-sitter-bash = { git = "https://github.com/tree-sitter/tree-sitter-bash" }
 version = "4.0.29"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
+[dev-dependencies]
+assert_cmd = "2.0.7"
+expect-test = "1.4.0"
+tempfile = "3.3.0"
+
 [profile.release]
 lto = true
 panic = "abort"

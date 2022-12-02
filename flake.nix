@@ -15,20 +15,36 @@
       inputs.rust-analyzer-src.follows = "fenix";
     };
     flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, crane, fenix, flake-utils, nixpkgs }:
+  outputs = { self, crane, fenix, flake-utils, nix-filter, nixpkgs }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
-          buildDepsOnly buildPackage cargoClippy cargoFmt cleanCargoSource;
-        inherit (nixpkgs.legacyPackages.${system}) libiconv nixpkgs-fmt stdenv;
+          buildDepsOnly buildPackage cargoClippy cargoFmt cargoNextest;
+        inherit (nixpkgs.legacyPackages.${system}) coreutils libiconv nixpkgs-fmt stdenv;
         inherit (nixpkgs.lib) optional;
 
         args' = {
-          src = cleanCargoSource self;
+          src = nix-filter.lib {
+            root = self;
+            include = [
+              "src"
+              "tests"
+              "Cargo.lock"
+              "Cargo.toml"
+              "rustfmt.toml"
+            ];
+          };
+
           buildInputs = optional stdenv.isDarwin libiconv;
+
+          postPatch = ''
+            substituteInPlace tests/fixtures/*-expected.sh \
+              --subst-var-by coreutils ${coreutils}
+          '';
         };
 
         args = args' // {
@@ -42,10 +58,13 @@
             cargoClippyExtraArgs = "-- -D warnings";
           });
           fmt = cargoFmt args;
+          test = cargoNextest args;
         };
 
         formatter = nixpkgs-fmt;
 
-        packages.default = buildPackage args;
+        packages.default = buildPackage (args // {
+          doCheck = false;
+        });
       });
 }
