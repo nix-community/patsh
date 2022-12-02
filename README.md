@@ -32,7 +32,7 @@ Options:
 ## TODO
 
 - sudo/doas support
-- escaping strings
+- ansi-c quoting
 - resolving variables
 - diagnostics for unresolved commands
 

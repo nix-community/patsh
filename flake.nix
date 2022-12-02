@@ -24,8 +24,14 @@
       let
         inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
           buildDepsOnly buildPackage cargoClippy cargoFmt cargoNextest;
-        inherit (nixpkgs.legacyPackages.${system}) coreutils libiconv nixpkgs-fmt stdenv;
+        inherit (nixpkgs.legacyPackages.${system}) coreutils libiconv nixpkgs-fmt runCommand stdenv;
         inherit (nixpkgs.lib) optional;
+
+        custom = runCommand "custom" { } ''
+          mkdir -p $out/bin
+          touch $out/bin/{'foo$','foo"`'}
+          chmod +x $out/bin/{'foo$','foo"`'}
+        '';
 
         args' = {
           src = nix-filter.lib {
@@ -41,10 +47,15 @@
 
           buildInputs = optional stdenv.isDarwin libiconv;
 
+          checkInputs = [ custom ];
+
           postPatch = ''
-            substituteInPlace tests/fixtures/*-expected.sh \
-              --subst-var-by cc ${stdenv.cc} \
-              --subst-var-by coreutils ${coreutils}
+            for file in tests/fixtures/*-expected.sh; do
+              substituteInPlace $file \
+                --subst-var-by cc ${stdenv.cc} \
+                --subst-var-by coreutils ${coreutils} \
+                --subst-var-by custom ${custom}
+            done
           '';
         };
 

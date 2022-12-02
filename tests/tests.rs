@@ -9,6 +9,11 @@ fn basic() {
     check("basic");
 }
 
+#[test]
+fn escape() {
+    check("escape");
+}
+
 fn check(name: &str) {
     let dir = tempdir().unwrap();
     let out = dir.path().join(format!("{name}-actual.sh"));

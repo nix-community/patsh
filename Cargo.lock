@@ -280,6 +280,7 @@ dependencies = [
  "clap",
  "expect-test",
  "is_executable",
+ "shell-escape",
  "tempfile",
  "tree-sitter",
  "tree-sitter-bash",
@@ -428,6 +429,12 @@ name = "serde"
 version = "1.0.148"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e53f64bb4ba0191d6d0676e1b141ca55047d83b74f5607e6d8eb88126c52c2dc"
+
+[[package]]
+name = "shell-escape"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45bb67a18fa91266cc7807181f62f9178a6873bfad7dc788c42e6430db40184f"
 
 [[package]]
 name = "strsim"
