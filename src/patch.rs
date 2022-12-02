@@ -69,23 +69,24 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
     }
 
     let path = PathBuf::from(OsStr::from_bytes(name));
+    if path.starts_with(&ctx.store_dir) {
+        return Ok(());
+    }
+
     let mut c = path.components();
-    let name = match (c.next(), c.next(), c.next(), c.next(), c.next()) {
-        (
-            Some(Component::RootDir),
-            Some(Component::Normal(usr)),
-            Some(Component::Normal(bin)),
-            Some(Component::Normal(name)),
-            None,
-        ) if usr == "usr" && bin == "bin" => name,
-        (
-            Some(Component::RootDir),
-            Some(Component::Normal(bin)),
-            Some(Component::Normal(name)),
-            None,
-            _,
-        ) if bin == "bin" => name,
-        (Some(Component::Normal(name)), None, ..) if !ctx.builtins.contains(&name.into()) => name,
+    let name = match c.next() {
+        Some(Component::RootDir) => {
+            if let Some(Component::Normal(name)) = c.last() {
+                name
+            } else {
+                return Ok(());
+            }
+        }
+        Some(Component::Normal(name))
+            if c.next().is_none() && !ctx.builtins.contains(&name.into()) =>
+        {
+            name
+        }
         _ => return Ok(()),
     };
 

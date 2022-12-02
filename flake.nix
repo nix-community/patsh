@@ -43,6 +43,7 @@
 
           postPatch = ''
             substituteInPlace tests/fixtures/*-expected.sh \
+              --subst-var-by cc ${stdenv.cc} \
               --subst-var-by coreutils ${coreutils}
           '';
         };

@@ -1,4 +1,10 @@
 #!/bin/sh
 
 echo foo
-ls
+if ls "$("touch" ln)"; then
+    uname/bar
+    '/bin/true'
+    "/usr/bin/cc" baz
+fi
+
+qux/sleep 1
