@@ -27,12 +27,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install nix
-        uses: cachix/install-nix-action@v18
-
       - name: "Cargo: clippy, fmt"
         run: |
           rustup toolchain install stable --profile minimal -c clippy
           rustup toolchain install nightly --profile minimal -c rustfmt
-          TREE_SITTER_BASH=$(nix eval -L --raw .#tree-sitter-bash) cargo +stable clippy -- -D warnings
+          cargo +stable clippy -- -D warnings
           cargo +nightly fmt -- --check

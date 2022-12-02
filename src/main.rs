@@ -1,7 +1,7 @@
 use anyhow::{bail, Context as _, Result};
 use clap::Parser as ClapParser;
 use is_executable::IsExecutable;
-use tree_sitter::{Language, Node, Parser, TreeCursor};
+use tree_sitter::{Node, Parser, TreeCursor};
 
 use std::{
     env::{split_paths, var_os},
@@ -13,11 +13,6 @@ use std::{
     path::{Component, PathBuf},
     process::Command,
 };
-
-#[link(name = "tree-sitter-bash", kind = "dylib")]
-extern "C" {
-    fn tree_sitter_bash() -> Language;
-}
 
 /// A command-line tool for patching shell scripts
 /// https://github.com/nix-community/patsh
@@ -60,7 +55,7 @@ struct Context {
 fn main() -> Result<()> {
     let opts = Opts::parse();
     let mut parser = Parser::new();
-    parser.set_language(unsafe { tree_sitter_bash() })?;
+    parser.set_language(tree_sitter_bash::language())?;
 
     let output = Command::new(&opts.bash).arg("-c").arg("enable").output()?;
     if !output.status.success() {

@@ -186,6 +186,7 @@ dependencies = [
  "clap",
  "is_executable",
  "tree-sitter",
+ "tree-sitter-bash",
 ]
 
 [[package]]
@@ -319,6 +320,15 @@ checksum = "d4423c784fe11398ca91e505cdc71356b07b1a924fc8735cfab5333afe3e18bc"
 dependencies = [
  "cc",
  "regex",
+]
+
+[[package]]
+name = "tree-sitter-bash"
+version = "0.19.0"
+source = "git+https://github.com/tree-sitter/tree-sitter-bash#4488aa41406547e478636a4fcfd24f5bbc3f2f74"
+dependencies = [
+ "cc",
+ "tree-sitter",
 ]
 
 [[package]]
