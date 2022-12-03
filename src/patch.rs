@@ -5,13 +5,12 @@ use tree_sitter::{Node, Tree, TreeCursor};
 use std::{
     fs::read_link,
     io::Write,
-    ops::Range,
     os::unix::prelude::OsStrExt,
     path::{Component, PathBuf},
     str,
 };
 
-use crate::context::Context;
+use crate::{parse_command, Context};
 
 pub fn patch(ctx: &mut Context, tree: Tree, out: &mut impl Write) -> Result<()> {
     walk(ctx, &mut tree.walk())?;
@@ -53,23 +52,11 @@ fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
 }
 
 fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
-    let (range, name) = if let Some(x) = parse_literal(&ctx.src, &node) {
+    let (range, name) = if let Some(x) = parse_command(&ctx.src, &node) {
         x
     } else {
         return Ok(());
     };
-
-    if name == "exec" {
-        return if let Some(node) = node
-            .parent()
-            .and_then(|node| node.parent())
-            .and_then(|node| node.child_by_field_name(b"argument"))
-        {
-            patch_node(ctx, node)
-        } else {
-            Ok(())
-        };
-    }
 
     let path = PathBuf::from(name);
     if path.starts_with(&ctx.store_dir) {
@@ -143,56 +130,4 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn parse_literal(src: &[u8], node: &Node) -> Option<(Range<usize>, String)> {
-    let range = node.byte_range();
-    match node.kind() {
-        "raw_string" => {
-            let content = &src[range.start + 1 .. range.end - 1];
-            Some((range, String::from_utf8(content.into()).ok()?))
-        }
-
-        "string" => {
-            let content = str::from_utf8(&src[range.start + 1 .. range.end - 1]).ok()?;
-            eprintln!("{}", content);
-            let mut chars = content.chars();
-            let mut result = String::with_capacity(content.len());
-
-            while let Some(c) = chars.next() {
-                match c {
-                    '\\' => {
-                        let c = chars.next()?;
-                        if !matches!(c, '$' | '`' | '"' | '\\') {
-                            result.push('\\');
-                        }
-                        result.push(c);
-                    }
-                    '$' => result.push(chars.next().is_none().then_some('$')?),
-                    _ => result.push(c),
-                }
-            }
-            eprintln!("{}", result);
-
-            Some((range, result))
-        }
-
-        "word" => {
-            let content = str::from_utf8(&src[range.clone()]).ok()?;
-            let mut chars = content.chars();
-            let mut result = String::with_capacity(content.len());
-
-            while let Some(c) = chars.next() {
-                result.push(match c {
-                    '\\' => chars.next()?,
-                    '$' => chars.next().is_none().then_some('$')?,
-                    c => c,
-                });
-            }
-
-            Some((range, result))
-        }
-
-        _ => None,
-    }
 }

@@ -31,7 +31,6 @@ Options:
 
 ## TODO
 
-- sudo/doas support
 - ansi-c quoting
 - resolving variables
 - diagnostics for unresolved commands

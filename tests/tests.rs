@@ -14,6 +14,11 @@ fn escape() {
     check("escape");
 }
 
+#[test]
+fn exec() {
+    check("exec");
+}
+
 fn check(name: &str) {
     let dir = tempdir().unwrap();
     let out = dir.path().join(format!("{name}-actual.sh"));
