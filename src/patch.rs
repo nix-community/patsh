@@ -52,7 +52,7 @@ fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
 }
 
 fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
-    let (range, name) = if let Some(x) = parse_command(&ctx.src, &node) {
+    let (range, name) = if let Some(x) = parse_command(ctx, &node) {
         x
     } else {
         return Ok(());

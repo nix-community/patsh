@@ -2,30 +2,38 @@ use tree_sitter::Node;
 
 use std::{ops::Range, os::unix::prelude::OsStrExt, path::PathBuf, str};
 
-pub(crate) fn parse_command(src: &[u8], node: &Node) -> Option<(Range<usize>, String)> {
-    let (range, name) = parse_literal(src, node)?;
+use crate::Context;
+
+pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> Option<(Range<usize>, String)> {
+    let (range, name) = parse_literal(&ctx.src, node)?;
     match name.as_str() {
-        "command" => parse_exec(src, node, &[], &[]),
-        "exec" => parse_exec(src, node, &['a'], &[]),
-        "type" => parse_exec(src, node, &[], &[]),
+        "command" => parse_exec(&ctx.src, node, &[], &[]),
+        "exec" => parse_exec(&ctx.src, node, &['a'], &[]),
+        "type" => parse_exec(&ctx.src, node, &[], &[]),
         _ => match PathBuf::from(&name).file_name().map(OsStrExt::as_bytes) {
-            Some(b"doas") => parse_exec(src, node, &['C', 'u'], &[]),
-            Some(b"sudo") => parse_exec(
-                src,
-                node,
-                &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
-                &[
-                    "close-from",
-                    "chdir",
-                    "group",
-                    "host",
-                    "prompt",
-                    "chroot",
-                    "other-user",
-                    "command-timeout",
-                    "user",
-                ],
-            ),
+            Some(b"doas") => {
+                ctx.patches.push((range, "doas".into()));
+                parse_exec(&ctx.src, node, &['C', 'u'], &[])
+            }
+            Some(b"sudo") => {
+                ctx.patches.push((range, "sudo".into()));
+                parse_exec(
+                    &ctx.src,
+                    node,
+                    &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
+                    &[
+                        "close-from",
+                        "chdir",
+                        "group",
+                        "host",
+                        "prompt",
+                        "chroot",
+                        "other-user",
+                        "command-timeout",
+                        "user",
+                    ],
+                )
+            }
             Some(_) => Some((range, name)),
             None => None,
         },
