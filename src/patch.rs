@@ -52,81 +52,77 @@ fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
 }
 
 fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
-    let (range, name) = if let Some(x) = parse_command(ctx, &node) {
-        x
-    } else {
-        return Ok(());
-    };
+    for (range, name) in parse_command(ctx, &node) {
+        let path = PathBuf::from(name);
+        if path.starts_with(&ctx.store_dir) {
+            return Ok(());
+        }
 
-    let path = PathBuf::from(name);
-    if path.starts_with(&ctx.store_dir) {
-        return Ok(());
-    }
-
-    let mut c = path.components();
-    let name = match c.next() {
-        Some(Component::RootDir) => {
-            if let Some(Component::Normal(name)) = c.last() {
+        let mut c = path.components();
+        let name = match c.next() {
+            Some(Component::RootDir) => {
+                if let Some(Component::Normal(name)) = c.last() {
+                    name
+                } else {
+                    return Ok(());
+                }
+            }
+            Some(Component::Normal(name))
+                if c.next().is_none() && !ctx.builtins.contains(&name.into()) =>
+            {
                 name
-            } else {
-                return Ok(());
             }
-        }
-        Some(Component::Normal(name))
-            if c.next().is_none() && !ctx.builtins.contains(&name.into()) =>
-        {
-            name
-        }
-        _ => return Ok(()),
-    };
+            _ => return Ok(()),
+        };
 
-    let mut path = if let Some(path) = ctx.paths.iter().find_map(|path| {
-        let path = path.join(name);
-        path.is_executable().then_some(path)
-    }) {
-        path
-    } else {
-        return Ok(());
-    };
-
-    while let Ok(resolved) = read_link(&path) {
-        if resolved.file_name() == Some(name) {
-            path = resolved;
+        let mut path = if let Some(path) = ctx.paths.iter().find_map(|path| {
+            let path = path.join(name);
+            path.is_executable().then_some(path)
+        }) {
+            path
         } else {
-            break;
+            return Ok(());
+        };
+
+        while let Ok(resolved) = read_link(&path) {
+            if resolved.file_name() == Some(name) {
+                path = resolved;
+            } else {
+                break;
+            }
         }
-    }
 
-    if !path.starts_with(&ctx.store_dir) {
-        return Ok(());
-    }
+        if !path.starts_with(&ctx.store_dir) {
+            return Ok(());
+        }
 
-    let mut idx = ctx.patches.len();
-    let mut replace = false;
+        let mut idx = ctx.patches.len();
+        let mut replace = false;
 
-    for (i, (other, _)) in ctx.patches.iter().enumerate() {
-        if range.start < other.start {
-            if range.end <= other.end {
-                idx = i;
+        for (i, (other, _)) in ctx.patches.iter().enumerate() {
+            if range.start < other.start {
+                if range.end <= other.end {
+                    idx = i;
+                } else {
+                    bail!("{range:?} and {other:?} overlaps");
+                }
+            } else if range.start < other.end {
+                if range.end <= other.end {
+                    idx = i;
+                    replace = true;
+                } else {
+                    bail!("{range:?} and {other:?} overlaps");
+                }
             } else {
-                bail!("{range:?} and {other:?} overlaps");
+                break;
             }
-        } else if range.start < other.end {
-            if range.end <= other.end {
-                idx = i;
-                replace = true;
-            } else {
-                bail!("{range:?} and {other:?} overlaps");
-            }
+        }
+
+        if replace {
+            ctx.patches[idx] = (range, path);
         } else {
-            break;
+            ctx.patches.insert(idx, (range, path));
         }
-    }
-
-    if replace {
-        ctx.patches[idx] = (range, path);
-    } else {
-        ctx.patches.insert(idx, (range, path));
     }
 
     Ok(())

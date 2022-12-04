@@ -4,17 +4,38 @@ use std::{ops::Range, os::unix::prelude::OsStrExt, path::PathBuf, str};
 
 use crate::Context;
 
-pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> Option<(Range<usize>, String)> {
-    let (range, name) = parse_literal(&ctx.src, node)?;
+enum MultipleCommands {
+    Always,
+    Never,
+    Flags { short: &'static [char] },
+}
+
+pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> Vec<(Range<usize>, String)> {
+    let (range, name) = if let Some(x) = parse_literal(&ctx.src, node) {
+        x
+    } else {
+        return Vec::new();
+    };
+
     match name.as_str() {
-        "command" => parse_exec(&ctx.src, node, &[], &[]),
-        "exec" => parse_exec(&ctx.src, node, &['a'], &[]),
-        "type" => parse_exec(&ctx.src, node, &[], &[]),
+        "command" => parse_exec(
+            &ctx.src,
+            node,
+            &[],
+            &[],
+            MultipleCommands::Flags { short: &['v', 'V'] },
+        ),
+
+        "exec" => parse_exec(&ctx.src, node, &['a'], &[], MultipleCommands::Never),
+
+        "type" => parse_exec(&ctx.src, node, &[], &[], MultipleCommands::Always),
+
         _ => match PathBuf::from(&name).file_name().map(OsStrExt::as_bytes) {
             Some(b"doas") => {
                 ctx.patches.push((range, "doas".into()));
-                parse_exec(&ctx.src, node, &['C', 'u'], &[])
+                parse_exec(&ctx.src, node, &['C', 'u'], &[], MultipleCommands::Never)
             }
+
             Some(b"sudo") => {
                 ctx.patches.push((range, "sudo".into()));
                 parse_exec(
@@ -32,10 +53,13 @@ pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> Option<(Range<usi
                         "command-timeout",
                         "user",
                     ],
+                    MultipleCommands::Never,
                 )
             }
-            Some(_) => Some((range, name)),
-            None => None,
+
+            Some(_) => vec![(range, name)],
+
+            None => Vec::new(),
         },
     }
 }
@@ -45,45 +69,79 @@ fn parse_exec(
     node: &Node,
     short: &[char],
     long: &[&str],
-) -> Option<(Range<usize>, String)> {
+    multi: MultipleCommands,
+) -> Vec<(Range<usize>, String)> {
     let cur = &mut node.walk();
-    let mut args = node
-        .parent()?
-        .parent()?
-        .children_by_field_name("argument", cur);
+    let mut args = if let Some(node) = node.parent().and_then(|node| node.parent()) {
+        node.children_by_field_name("argument", cur)
+    } else {
+        return Vec::new();
+    };
 
-    while let Some(arg) = args.next() {
-        let (range, arg) = parse_literal(src, &arg)?;
+    let mut multiple = matches!(multi, MultipleCommands::Always);
+    let arg = loop {
+        let arg = if let Some(arg) = args.next() {
+            arg
+        } else {
+            return Vec::new();
+        };
+
+        let (range, arg) = if let Some(x) = parse_literal(src, &arg) {
+            x
+        } else {
+            continue;
+        };
         let mut chars = arg.chars();
 
-        match chars.next()? {
-            '-' => match chars.next() {
+        match chars.next() {
+            Some('-') => match chars.next() {
                 Some('-') => {
                     if chars.next().is_none() {
-                        return parse_literal(src, &args.next()?);
+                        return args.filter_map(|arg| parse_literal(src, &arg)).collect();
                     } else {
                         if long.contains(&&arg[2 ..]) {
-                            args.next()?;
+                            args.next();
                         }
                         continue;
                     }
                 }
 
                 Some(c) => {
-                    if short.contains(&chars.last().unwrap_or(c)) {
-                        args.next()?;
+                    let mut chars = Some(c).into_iter().chain(chars);
+                    while let Some(c) = chars.next() {
+                        if short.contains(&c) {
+                            if chars.next().is_none() {
+                                args.next();
+                            }
+                            break;
+                        }
+                        multiple = multiple
+                            || matches!(multi, MultipleCommands::Flags { short } if short.contains(&c));
                     }
                     continue;
                 }
 
-                None => return Some((range, arg)),
+                None if multiple => {
+                    break (range, arg);
+                }
+
+                None => return vec![(range, arg)],
             },
 
-            _ => return Some((range, arg)),
-        }
-    }
+            Some(_) if multiple => {
+                break (range, arg);
+            }
 
-    None
+            Some(_) => return vec![(range, arg)],
+
+            None => continue,
+        }
+    };
+
+    Some(arg)
+        .into_iter()
+        .chain(args.filter_map(|arg| parse_literal(src, &arg)))
+        .collect()
 }
 
 fn parse_literal(src: &[u8], node: &Node) -> Option<(Range<usize>, String)> {
@@ -96,7 +154,6 @@ fn parse_literal(src: &[u8], node: &Node) -> Option<(Range<usize>, String)> {
 
         "string" => {
             let content = str::from_utf8(&src[range.start + 1 .. range.end - 1]).ok()?;
-            eprintln!("{}", content);
             let mut chars = content.chars();
             let mut result = String::with_capacity(content.len());
 
@@ -113,7 +170,6 @@ fn parse_literal(src: &[u8], node: &Node) -> Option<(Range<usize>, String)> {
                     _ => result.push(c),
                 }
             }
-            eprintln!("{}", result);
 
             Some((range, result))
         }
