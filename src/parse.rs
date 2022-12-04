@@ -10,56 +10,71 @@ enum MultipleCommands {
     Flags { short: &'static [char] },
 }
 
-pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> Vec<(Range<usize>, String)> {
+pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> (bool, Vec<(Range<usize>, String)>) {
     let (range, name) = if let Some(x) = parse_literal(&ctx.src, node) {
         x
     } else {
-        return Vec::new();
+        return Default::default();
     };
 
     match name.as_str() {
-        "command" => parse_exec(
-            &ctx.src,
-            node,
-            &[],
-            &[],
-            MultipleCommands::Flags { short: &['v', 'V'] },
+        "command" => (
+            false,
+            parse_exec(
+                &ctx.src,
+                node,
+                &[],
+                &[],
+                MultipleCommands::Flags { short: &['v', 'V'] },
+            ),
         ),
 
-        "exec" => parse_exec(&ctx.src, node, &['a'], &[], MultipleCommands::Never),
+        "exec" => (
+            true,
+            parse_exec(&ctx.src, node, &['a'], &[], MultipleCommands::Never),
+        ),
 
-        "type" => parse_exec(&ctx.src, node, &[], &[], MultipleCommands::Always),
+        "type" => (
+            false,
+            parse_exec(&ctx.src, node, &[], &[], MultipleCommands::Always),
+        ),
 
         _ => match PathBuf::from(&name).file_name().map(OsStrExt::as_bytes) {
             Some(b"doas") => {
                 ctx.patches.push((range, "doas".into()));
-                parse_exec(&ctx.src, node, &['C', 'u'], &[], MultipleCommands::Never)
+                (
+                    true,
+                    parse_exec(&ctx.src, node, &['C', 'u'], &[], MultipleCommands::Never),
+                )
             }
 
             Some(b"sudo") => {
                 ctx.patches.push((range, "sudo".into()));
-                parse_exec(
-                    &ctx.src,
-                    node,
-                    &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
-                    &[
-                        "close-from",
-                        "chdir",
-                        "group",
-                        "host",
-                        "prompt",
-                        "chroot",
-                        "other-user",
-                        "command-timeout",
-                        "user",
-                    ],
-                    MultipleCommands::Never,
+                (
+                    true,
+                    parse_exec(
+                        &ctx.src,
+                        node,
+                        &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
+                        &[
+                            "close-from",
+                            "chdir",
+                            "group",
+                            "host",
+                            "prompt",
+                            "chroot",
+                            "other-user",
+                            "command-timeout",
+                            "user",
+                        ],
+                        MultipleCommands::Never,
+                    ),
                 )
             }
 
-            Some(_) => vec![(range, name)],
+            Some(_) => (false, vec![(range, name)]),
 
-            None => Vec::new(),
+            None => Default::default(),
         },
     }
 }

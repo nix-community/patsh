@@ -52,7 +52,8 @@ fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
 }
 
 fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
-    for (range, name) in parse_command(ctx, &node) {
+    let (no_builtins, commands) = parse_command(ctx, &node);
+    for (range, name) in commands {
         let path = PathBuf::from(name);
         if path.starts_with(&ctx.store_dir) {
             return Ok(());
@@ -68,7 +69,7 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
                 }
             }
             Some(Component::Normal(name))
-                if c.next().is_none() && !ctx.builtins.contains(&name.into()) =>
+                if c.next().is_none() && (no_builtins || !ctx.builtins.contains(&name.into())) =>
             {
                 name
             }

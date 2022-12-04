@@ -1,12 +1,13 @@
 #!/bin/sh
 
 command -p @coreutils@/bin/ls mkdir -v
-"command" -pv @coreutils@/bin/ls @coreutils@/bin/mkdir
+"command" -pv @coreutils@/bin/mkdir echo
 exec @coreutils@/bin/ls
-"exec" -a echo @coreutils@/bin/ls mkdir
+"exec" -a ls @coreutils@/bin/echo mkdir
 'exec' -cla mkdir @coreutils@/bin/ls
-type -a @cc@/bin/cc @coreutils@/bin/ls
-doas @coreutils@/bin/ls printenv
+type echo
+"type" -a @cc@/bin/cc @coreutils@/bin/ls
+doas @coreutils@/bin/echo printenv
 doas -u nixbld @coreutils@/bin/whoami
-sudo --preserve-env -gA @coreutils@/bin/id ls -a
+sudo --preserve-env -gA @coreutils@/bin/printf ls -a
 sudo -Eu id -pH @coreutils@/bin/ls -s

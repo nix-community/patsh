@@ -1,12 +1,13 @@
 #!/bin/sh
 
 command -p ls mkdir -v
-"command" -pv ls "/bin/mkdir"
+"command" -pv "/bin/mkdir" echo
 exec ls
-"exec" -a echo 'ls' mkdir
+"exec" -a ls 'echo' mkdir
 'exec' -cla mkdir "ls"
-type -a cc ls
-/bin/doas ls printenv
+type echo
+"type" -a cc ls
+/bin/doas echo printenv
 doas -u nixbld whoami
-'/usr/bin/sudo' --preserve-env -gA id ls -a
+sudo --preserve-env -gA printf ls -a
 '/usr/bin/sudo' -Eu id -pH ls -s
