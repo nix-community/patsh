@@ -2,7 +2,10 @@ use tree_sitter::Node;
 
 use std::{ops::Range, os::unix::prelude::OsStrExt, path::PathBuf, str};
 
-use crate::Context;
+use crate::{
+    patch::{add_patch, get_patch_index},
+    Context,
+};
 
 enum MultipleCommands {
     Always,
@@ -41,35 +44,43 @@ pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> (bool, Vec<(Range
 
         _ => match PathBuf::from(&name).file_name().map(OsStrExt::as_bytes) {
             Some(b"doas") => {
-                ctx.patches.push((range, "doas".into()));
-                (
-                    true,
-                    parse_exec(&ctx.src, node, &['C', 'u'], &[], MultipleCommands::Never),
-                )
+                if let Some(idx) = get_patch_index(&ctx.patches, &range) {
+                    add_patch(&mut ctx.patches, idx, range, "doas".into());
+                    (
+                        true,
+                        parse_exec(&ctx.src, node, &['C', 'u'], &[], MultipleCommands::Never),
+                    )
+                } else {
+                    Default::default()
+                }
             }
 
             Some(b"sudo") => {
-                ctx.patches.push((range, "sudo".into()));
-                (
-                    true,
-                    parse_exec(
-                        &ctx.src,
-                        node,
-                        &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
-                        &[
-                            "close-from",
-                            "chdir",
-                            "group",
-                            "host",
-                            "prompt",
-                            "chroot",
-                            "other-user",
-                            "command-timeout",
-                            "user",
-                        ],
-                        MultipleCommands::Never,
-                    ),
-                )
+                if let Some(idx) = get_patch_index(&ctx.patches, &range) {
+                    add_patch(&mut ctx.patches, idx, range, "sudo".into());
+                    (
+                        true,
+                        parse_exec(
+                            &ctx.src,
+                            node,
+                            &['C', 'D', 'g', 'h', 'p', 'R', 'U', 'T', 'u'],
+                            &[
+                                "close-from",
+                                "chdir",
+                                "group",
+                                "host",
+                                "prompt",
+                                "chroot",
+                                "other-user",
+                                "command-timeout",
+                                "user",
+                            ],
+                            MultipleCommands::Never,
+                        ),
+                    )
+                } else {
+                    Default::default()
+                }
             }
 
             Some(_) => (false, vec![(range, name)]),

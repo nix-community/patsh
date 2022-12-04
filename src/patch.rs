@@ -1,10 +1,11 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 use is_executable::IsExecutable;
 use tree_sitter::{Node, Tree, TreeCursor};
 
 use std::{
     fs::read_link,
     io::Write,
+    ops::Range,
     os::unix::prelude::OsStrExt,
     path::{Component, PathBuf},
     str,
@@ -35,7 +36,7 @@ pub fn patch(ctx: &mut Context, tree: Tree, out: &mut impl Write) -> Result<()> 
 
 fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
     if cur.node().kind() == "command_name" && cur.goto_first_child() {
-        patch_node(ctx, cur.node())?;
+        patch_node(ctx, cur.node());
         cur.goto_parent();
     }
 
@@ -51,12 +52,12 @@ fn walk(ctx: &mut Context, cur: &mut TreeCursor) -> Result<()> {
     Ok(())
 }
 
-fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
+fn patch_node(ctx: &mut Context, node: Node) {
     let (no_builtins, commands) = parse_command(ctx, &node);
     for (range, name) in commands {
         let path = PathBuf::from(name);
         if path.starts_with(&ctx.store_dir) {
-            return Ok(());
+            continue;
         }
 
         let mut c = path.components();
@@ -65,7 +66,7 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
                 if let Some(Component::Normal(name)) = c.last() {
                     name
                 } else {
-                    return Ok(());
+                    continue;
                 }
             }
             Some(Component::Normal(name))
@@ -73,7 +74,13 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
             {
                 name
             }
-            _ => return Ok(()),
+            _ => continue,
+        };
+
+        let idx = if let Some(idx) = get_patch_index(&ctx.patches, &range) {
+            idx
+        } else {
+            continue;
         };
 
         let mut path = if let Some(path) = ctx.paths.iter().find_map(|path| {
@@ -82,7 +89,7 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
         }) {
             path
         } else {
-            return Ok(());
+            continue;
         };
 
         while let Ok(resolved) = read_link(&path) {
@@ -93,38 +100,52 @@ fn patch_node(ctx: &mut Context, node: Node) -> Result<()> {
             }
         }
 
-        if !path.starts_with(&ctx.store_dir) {
-            return Ok(());
+        if path.starts_with(&ctx.store_dir) {
+            add_patch(&mut ctx.patches, idx, range, path);
         }
+    }
+}
 
-        let mut idx = ctx.patches.len();
-        let mut replace = false;
+pub(crate) fn get_patch_index(
+    patches: &[(Range<usize>, PathBuf)],
+    range: &Range<usize>,
+) -> Option<(usize, bool)> {
+    let mut idx = patches.len();
+    let mut replace = false;
 
-        for (i, (other, _)) in ctx.patches.iter().enumerate() {
-            if range.start < other.start {
-                if range.end <= other.end {
-                    idx = i;
-                } else {
-                    bail!("{range:?} and {other:?} overlaps");
-                }
-            } else if range.start < other.end {
-                if range.end <= other.end {
-                    idx = i;
-                    replace = true;
-                } else {
-                    bail!("{range:?} and {other:?} overlaps");
-                }
+    for (i, (other, _)) in patches.iter().enumerate() {
+        if range == other {
+            return None;
+        } else if range.start < other.start {
+            if range.end <= other.end {
+                idx = i;
             } else {
-                break;
+                panic!("{range:?} and {other:?} overlaps");
             }
-        }
-
-        if replace {
-            ctx.patches[idx] = (range, path);
+        } else if range.start < other.end {
+            if range.end <= other.end {
+                idx = i;
+                replace = true;
+            } else {
+                panic!("{range:?} and {other:?} overlaps");
+            }
         } else {
-            ctx.patches.insert(idx, (range, path));
+            break;
         }
     }
 
-    Ok(())
+    Some((idx, replace))
+}
+
+pub(crate) fn add_patch(
+    patches: &mut Vec<(Range<usize>, PathBuf)>,
+    (idx, replace): (usize, bool),
+    range: Range<usize>,
+    path: PathBuf,
+) {
+    if replace {
+        patches[idx] = (range, path);
+    } else {
+        patches.insert(idx, (range, path));
+    }
 }
