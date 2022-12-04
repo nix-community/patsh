@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.0 - 2022-12-04
+
+### Features
+
+- Better support for quoted strings
+- Support for `sodo`, `doas`, `command`, and `type`
+
 ## v0.1.3 - 2022-11-27
 
 ### Features

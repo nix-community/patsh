@@ -1,6 +1,6 @@
 [package]
 name = "patsh"
-version = "0.1.3"
+version = "0.2.0"
 authors = ["figsoda <figsoda@pm.me>"]
 edition = "2021"
 description = "A command-line tool for patching shell scripts"
