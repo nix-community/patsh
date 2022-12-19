@@ -77,18 +77,12 @@ fn patch_node(ctx: &mut Context, node: Node) {
             _ => continue,
         };
 
-        let idx = if let Some(idx) = get_patch_index(&ctx.patches, &range) {
-            idx
-        } else {
-            continue;
-        };
+        let Some(idx) = get_patch_index(&ctx.patches, &range) else { continue; };
 
-        let mut path = if let Some(path) = ctx.paths.iter().find_map(|path| {
+        let Some(mut path) = ctx.paths.iter().find_map(|path| {
             let path = path.join(name);
             path.is_executable().then_some(path)
-        }) {
-            path
-        } else {
+        }) else {
             continue;
         };
 

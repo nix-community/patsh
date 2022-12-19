@@ -14,9 +14,7 @@ enum MultipleCommands {
 }
 
 pub(crate) fn parse_command(ctx: &mut Context, node: &Node) -> (bool, Vec<(Range<usize>, String)>) {
-    let (range, name) = if let Some(x) = parse_literal(&ctx.src, node) {
-        x
-    } else {
+    let Some((range, name)) = parse_literal(&ctx.src, node) else {
         return Default::default();
     };
 
@@ -98,25 +96,13 @@ fn parse_exec(
     multi: MultipleCommands,
 ) -> Vec<(Range<usize>, String)> {
     let cur = &mut node.walk();
-    let mut args = if let Some(node) = node.parent().and_then(|node| node.parent()) {
-        node.children_by_field_name("argument", cur)
-    } else {
-        return Vec::new();
-    };
+    let Some(node) = node.parent().and_then(|node| node.parent()) else { return Vec::new()};
+    let mut args = node.children_by_field_name("argument", cur);
 
     let mut multiple = matches!(multi, MultipleCommands::Always);
     let arg = loop {
-        let arg = if let Some(arg) = args.next() {
-            arg
-        } else {
-            return Vec::new();
-        };
-
-        let (range, arg) = if let Some(x) = parse_literal(src, &arg) {
-            x
-        } else {
-            continue;
-        };
+        let Some(arg) = args.next() else { return Vec::new()};
+        let Some((range, arg)) = parse_literal(src, &arg) else { continue; };
         let mut chars = arg.chars();
 
         match chars.next() {
