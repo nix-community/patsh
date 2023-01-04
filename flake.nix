@@ -20,7 +20,12 @@
   };
 
   outputs = { self, crane, fenix, flake-utils, nix-filter, nixpkgs }:
-    flake-utils.lib.eachDefaultSystem (system:
+    {
+      herculesCI.ciSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+    } // flake-utils.lib.eachDefaultSystem (system:
       let
         inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
           buildDepsOnly buildPackage cargoClippy cargoFmt cargoNextest;
