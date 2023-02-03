@@ -479,7 +479,7 @@ dependencies = [
 [[package]]
 name = "tree-sitter-bash"
 version = "0.19.0"
-source = "git+https://github.com/tree-sitter/tree-sitter-bash#88ed46b8c32782379d5cab8bc9ea111ca7ad7dcb"
+source = "git+https://github.com/tree-sitter/tree-sitter-bash#7f9506c34ab6a0f4e3e052b7a49cbeef91f71236"
 dependencies = [
  "cc",
  "tree-sitter",
