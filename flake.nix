@@ -39,8 +39,8 @@
 
         args' = {
           src = sourceByRegex self [
-            "(src|test)(/.*)?"
-            "Cargo\.(toml|lock)"
+            "(src|tests)(/.*)?"
+            "Cargo\\.(toml|lock)"
             "rustfmt.toml"
           ];
 
