@@ -15,11 +15,10 @@
       inputs.rust-analyzer-src.follows = "fenix";
     };
     flake-utils.url = "github:numtide/flake-utils";
-    nix-filter.url = "github:numtide/nix-filter";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, crane, fenix, flake-utils, nix-filter, nixpkgs }:
+  outputs = { self, crane, fenix, flake-utils, nixpkgs }:
     {
       herculesCI.ciSystems = [
         "x86_64-linux"
@@ -30,7 +29,7 @@
         inherit (crane.lib.${system}.overrideToolchain fenix.packages.${system}.default.toolchain)
           buildDepsOnly buildPackage cargoClippy cargoFmt cargoNextest;
         inherit (nixpkgs.legacyPackages.${system}) coreutils libiconv nixpkgs-fmt runCommand stdenv;
-        inherit (nixpkgs.lib) optional;
+        inherit (nixpkgs.lib) optional sourceByRegex;
 
         custom = runCommand "custom" { } ''
           mkdir -p $out/bin
@@ -39,16 +38,11 @@
         '';
 
         args' = {
-          src = nix-filter.lib {
-            root = self;
-            include = [
-              "src"
-              "tests"
-              "Cargo.lock"
-              "Cargo.toml"
-              "rustfmt.toml"
-            ];
-          };
+          src = sourceByRegex self [
+            "(src|test)(/.*)?"
+            "Cargo\.(toml|lock)"
+            "rustfmt.toml"
+          ];
 
           buildInputs = optional stdenv.isDarwin libiconv;
 
