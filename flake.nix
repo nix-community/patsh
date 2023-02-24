@@ -37,7 +37,7 @@
           chmod +x $out/bin/{'foo$','foo"`'}
         '';
 
-        args' = {
+        args = {
           src = sourceByRegex self [
             "(src|tests)(/.*)?"
             "Cargo\\.(toml|lock)"
@@ -48,6 +48,8 @@
 
           checkInputs = [ custom ];
 
+          cargoArtifacts = buildDepsOnly args;
+
           postPatch = ''
             for file in tests/fixtures/*-expected.sh; do
               substituteInPlace $file \
@@ -56,10 +58,6 @@
                 --subst-var-by custom ${custom}
             done
           '';
-        };
-
-        args = args' // {
-          cargoArtifacts = buildDepsOnly args';
         };
       in
       {
