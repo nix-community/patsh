@@ -25,7 +25,7 @@ features = ["cargo", "derive", "unicode", "wrap_help"]
 [dev-dependencies]
 assert_cmd = "2.0.8"
 expect-test = "1.4.0"
-tempfile = "3.3.0"
+tempfile = "3.4.0"
 
 [profile.release]
 lto = true
