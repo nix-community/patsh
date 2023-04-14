@@ -19,7 +19,7 @@ tree-sitter = "0.20.10"
 tree-sitter-bash = { git = "https://github.com/tree-sitter/tree-sitter-bash" }
 
 [dependencies.clap]
-version = "4.1.14"
+version = "4.2.2"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dev-dependencies]
