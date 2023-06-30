@@ -68,6 +68,7 @@
             checkInputs = [ custom ];
 
             cargoArtifacts = buildDepsOnly args;
+            doInstallCargoArtifacts = false;
 
             postPatch = ''
               for file in tests/fixtures/*-expected.sh; do
