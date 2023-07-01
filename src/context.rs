@@ -1,5 +1,3 @@
-use anyhow::{bail, Result};
-
 use std::{
     env::{split_paths, var_os},
     ffi::OsString,
@@ -8,6 +6,8 @@ use std::{
     path::PathBuf,
     process::Command,
 };
+
+use anyhow::{bail, Result};
 
 pub struct Context {
     pub(crate) builtins: Vec<OsString>,

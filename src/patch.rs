@@ -1,7 +1,3 @@
-use anyhow::Result;
-use is_executable::IsExecutable;
-use tree_sitter::{Node, Tree, TreeCursor};
-
 use std::{
     fs::read_link,
     io::Write,
@@ -10,6 +6,10 @@ use std::{
     path::{Component, PathBuf},
     str,
 };
+
+use anyhow::Result;
+use is_executable::IsExecutable;
+use tree_sitter::{Node, Tree, TreeCursor};
 
 use crate::{parse_command, Context};
 

@@ -1,8 +1,8 @@
+use std::{fs, str};
+
 use assert_cmd::Command;
 use expect_test::expect_file;
 use tempfile::tempdir;
-
-use std::{fs, str};
 
 #[test]
 fn basic() {

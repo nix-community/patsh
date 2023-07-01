@@ -1,14 +1,13 @@
-use anyhow::{Context as _, Result};
-use clap::Parser as ClapParser;
-use tree_sitter::Parser;
-
 use std::{
     ffi::OsString,
     fs::{self, File},
     path::PathBuf,
 };
 
+use anyhow::{Context as _, Result};
+use clap::Parser as ClapParser;
 use patsh::{patch, Context};
+use tree_sitter::Parser;
 
 /// A command-line tool for patching shell scripts
 /// https://github.com/nix-community/patsh
