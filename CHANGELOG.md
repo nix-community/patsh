@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1 - 2023-08-18
+
+### Changes
+
+- use the `tree-sitter-bash` crate instead of the git repository
+- update dependencies
+
 ## v0.2.0 - 2022-12-04
 
 ### Features

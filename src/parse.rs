@@ -96,13 +96,19 @@ fn parse_exec(
     multi: MultipleCommands,
 ) -> Vec<(Range<usize>, String)> {
     let cur = &mut node.walk();
-    let Some(node) = node.parent().and_then(|node| node.parent()) else { return Vec::new()};
+    let Some(node) = node.parent().and_then(|node| node.parent()) else {
+        return Vec::new();
+    };
     let mut args = node.children_by_field_name("argument", cur);
 
     let mut multiple = matches!(multi, MultipleCommands::Always);
     let arg = loop {
-        let Some(arg) = args.next() else { return Vec::new()};
-        let Some((range, arg)) = parse_literal(src, &arg) else { continue; };
+        let Some(arg) = args.next() else {
+            return Vec::new();
+        };
+        let Some((range, arg)) = parse_literal(src, &arg) else {
+            continue;
+        };
         let mut chars = arg.chars();
 
         match chars.next() {
