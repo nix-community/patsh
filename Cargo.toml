@@ -16,7 +16,7 @@ anyhow = "1.0.75"
 is_executable = "1.0.1"
 shell-escape = "0.1.5"
 tree-sitter = "0.20.10"
-tree-sitter-bash = "0.20.1"
+tree-sitter-bash = "0.20.2"
 
 [dependencies.clap]
 version = "4.3.24"
