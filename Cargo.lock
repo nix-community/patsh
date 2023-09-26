@@ -105,9 +105,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.82"
+version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "305fe645edc1442a0fa8b6726ba61d422798d37a52e12eaecf4b022ebbb88f01"
+checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
 dependencies = [
  "libc",
 ]
@@ -458,9 +458,9 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-bash"
-version = "0.20.1"
+version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48585b67db83eac83d4fc90fcce69b5cabe86a4c1ee82c64dfcd6cdc043e4302"
+checksum = "096f57b3b44c04bfc7b21a4da44bfa16adf1f88aba18993b8478a091076d0968"
 dependencies = [
  "cc",
  "tree-sitter",
