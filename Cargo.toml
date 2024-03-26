@@ -19,7 +19,7 @@ tree-sitter = "0.20.10"
 tree-sitter-bash = "0.20.5"
 
 [dependencies.clap]
-version = "4.4.17"
+version = "4.5.4"
 features = ["cargo", "derive", "unicode", "wrap_help"]
 
 [dev-dependencies]
