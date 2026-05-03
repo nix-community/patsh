@@ -9,7 +9,7 @@ on:
 permissions: {}
 
 jobs:
-  e2e:
+  check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
