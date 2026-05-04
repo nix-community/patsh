@@ -2,8 +2,8 @@
 
 @coreutils@/bin/ls
 "\l\s"
-'@custom@/bin/foo"`'
-'@custom@/bin/foo"`'
-'@custom@/bin/foo$'
-'@custom@/bin/foo$'
+'@test_support@/bin/foo"`'
+'@test_support@/bin/foo"`'
+'@test_support@/bin/foo$'
+'@test_support@/bin/foo$'
 'foo\$'
