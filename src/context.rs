@@ -7,7 +7,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 pub struct Context {
     pub(crate) builtins: Vec<OsString>,

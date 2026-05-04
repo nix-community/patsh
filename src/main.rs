@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::{Context as _, Result};
 use clap::Parser as ClapParser;
-use patsh::{patch, Context};
+use patsh::{Context, patch};
 use tree_sitter::Parser;
 
 /// A command-line tool for patching shell scripts
@@ -42,7 +42,7 @@ struct Opts {
 fn main() -> Result<()> {
     let opts = Opts::parse();
     let mut parser = Parser::new();
-    parser.set_language(tree_sitter_bash::language())?;
+    parser.set_language(&tree_sitter_bash::LANGUAGE.into())?;
 
     let src = fs::read(&opts.input)?;
     let tree = parser
@@ -55,9 +55,10 @@ fn main() -> Result<()> {
         &mut ctx,
         tree,
         &mut File::options()
-            .write(true)
             .create(true)
             .create_new(!opts.force)
+            .truncate(true)
+            .write(true)
             .open(opts.output.unwrap_or(opts.input))?,
     )?;
 

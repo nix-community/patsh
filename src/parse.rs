@@ -3,8 +3,8 @@ use std::{ops::Range, os::unix::prelude::OsStrExt, path::PathBuf, str};
 use tree_sitter::Node;
 
 use crate::{
-    patch::{add_patch, get_patch_index},
     Context,
+    patch::{add_patch, get_patch_index},
 };
 
 enum MultipleCommands {

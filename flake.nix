@@ -1,13 +1,5 @@
 {
-  description = "A command-line tool for patching shell scripts";
-
   inputs = {
-    crane = {
-      url = "github:ipetkov/crane";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "";
-      inputs.rust-overlay.follows = "";
-    };
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -18,9 +10,14 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ crane, flake-parts, ... }:
+  outputs =
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "aarch64-darwin"
@@ -29,72 +26,67 @@
         "x86_64-linux"
       ];
 
-      perSystem = { inputs', lib, pkgs, self', system, ... }:
+      imports = [ inputs.treefmt-nix.flakeModule ];
+
+      perSystem =
+        {
+          config,
+          inputs',
+          lib,
+          pkgs,
+          ...
+        }:
         let
-          inherit (lib)
-            optional
-            sourceByRegex
-            ;
-          inherit (crane.lib.${system}.overrideToolchain inputs'.fenix.packages.default.toolchain)
-            buildDepsOnly
-            buildPackage
-            cargoClippy
-            cargoFmt
-            cargoNextest
-            ;
           inherit (pkgs)
-            coreutils
-            libiconv
-            nixpkgs-fmt
-            runCommand
-            stdenv
+            callPackage
             ;
-
-          custom = runCommand "custom" { } ''
-            mkdir -p $out/bin
-            touch $out/bin/{'foo$','foo"`'}
-            chmod +x $out/bin/{'foo$','foo"`'}
-          '';
-
-          args = {
-            src = sourceByRegex ./. [
-              "(src|tests)(/.*)?"
-              "Cargo\\.(toml|lock)"
-              ''rustfmt\.toml''
-            ];
-
-            buildInputs = optional stdenv.isDarwin libiconv;
-
-            checkInputs = [ custom ];
-
-            cargoArtifacts = buildDepsOnly args;
-            doInstallCargoArtifacts = false;
-
-            postPatch = ''
-              for file in tests/fixtures/*-expected.sh; do
-                substituteInPlace $file \
-                  --subst-var-by cc ${stdenv.cc} \
-                  --subst-var-by coreutils ${coreutils} \
-                  --subst-var-by custom ${custom}
-              done
-            '';
-          };
         in
         {
-          checks = {
-            build = self'.packages.default;
-            clippy = cargoClippy (args // {
-              cargoClippyExtraArgs = "-- -D warnings";
-            });
-            fmt = cargoFmt args;
-            test = cargoNextest args;
+          packages = {
+            default = callPackage ./package.nix { };
           };
 
-          formatter = nixpkgs-fmt;
+          checks =
+            let
+              packages = lib.mapAttrs' (n: lib.nameValuePair "package-${n}") config.packages;
+              checks = {
+                clippy = config.packages.default.overrideAttrs (old: {
+                  pname = "patsh-clippy";
 
-          packages.default = buildPackage (args // {
-            doCheck = false;
-          });
+                  nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.clippy ];
+
+                  doCheck = false;
+
+                  buildPhase = ''
+                    runHook preBuild
+                    cargo clippy --target ${pkgs.stdenv.targetPlatform.rust.rustcTarget} \
+                      --offline --no-default-features -- -D warnings
+                    runHook postBuild
+                  '';
+
+                  installPhase = ''
+                    touch $out
+                  '';
+                });
+              };
+            in
+            packages // checks;
+
+          treefmt = {
+            programs = {
+              actionlint.enable = true;
+              deadnix.enable = true;
+              nixfmt.enable = true;
+              oxfmt.enable = true;
+              rustfmt = {
+                enable = true;
+                package = inputs'.fenix.packages.latest.rustfmt;
+              };
+              statix.enable = true;
+              taplo.enable = true;
+              zizmor.enable = true;
+            };
+          };
         };
     };
 }

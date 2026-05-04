@@ -11,7 +11,7 @@ use anyhow::Result;
 use is_executable::IsExecutable;
 use tree_sitter::{Node, Tree, TreeCursor};
 
-use crate::{parse_command, Context};
+use crate::{Context, parse_command};
 
 pub fn patch(ctx: &mut Context, tree: Tree, out: &mut impl Write) -> Result<()> {
     walk(ctx, &mut tree.walk())?;
@@ -63,7 +63,7 @@ fn patch_node(ctx: &mut Context, node: Node) {
         let mut c = path.components();
         let name = match c.next() {
             Some(Component::RootDir) => {
-                if let Some(Component::Normal(name)) = c.last() {
+                if let Some(Component::Normal(name)) = c.next_back() {
                     name
                 } else {
                     continue;
