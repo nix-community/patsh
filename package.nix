@@ -7,7 +7,7 @@
 }:
 
 let
-  custom = runCommand "custom" { } ''
+  test-support = runCommand "patsh-test-support" { } ''
     mkdir -p $out/bin
     touch $out/bin/{'foo$','foo"`'}
     chmod +x $out/bin/{'foo$','foo"`'}
@@ -33,14 +33,14 @@ rustPlatform.buildRustPackage {
     lockFile = ./Cargo.lock;
   };
 
-  nativeCheckInputs = [ custom ];
+  nativeCheckInputs = [ test-support ];
 
   postPatch = ''
     for file in tests/fixtures/*-expected.sh; do
       substituteInPlace $file \
         --subst-var-by cc ${stdenv.cc} \
         --subst-var-by coreutils ${coreutils} \
-        --subst-var-by custom ${custom}
+        --subst-var-by test_support ${test-support}
     done
   '';
 }
