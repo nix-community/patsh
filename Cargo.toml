@@ -15,7 +15,7 @@ categories = ["command-line-utilities"]
 anyhow = "1.0.102"
 is_executable = "1.0.5"
 shell-escape = "0.1.5"
-tree-sitter = "0.26.8"
+tree-sitter = "0.26.9"
 tree-sitter-bash = "0.25.1"
 
 [dependencies.clap]
